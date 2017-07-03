@@ -1,0 +1,153 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.6/css/materialize.min.css">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+
+
+       <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.3.5/angular.min.js"></script>
+       <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.3.5/angular-route.min.js"></script>
+<script>
+       var app = angular.module('app', ['ngRoute']);
+       app.config(function ($routeProvider){
+           $routeProvider
+           .when ('/', {
+               templateUrl: 'partials/dashboard.html',
+           })
+           .when('/question', {
+               templateUrl: 'partials/question.html',
+           })
+           .when('/addQuestion',{
+               templateUrl: 'partials/addQuestion.html'
+           })
+           .when('/answer',{
+               templateUrl: 'partials/addAnswer.html'
+           })
+           .otherwise({
+               redirectTo: '/'
+           });
+               })
+
+
+// FACTORIES
+app.factory('questionsFactory', function($http) {
+	var factory = {};
+	var questions = [];
+	var answers = [];
+
+	factory.getQuestions = function(callback) {
+		$http.get('/getQuestions').success(function(output) {
+			questions = output;
+			callback(questions);
+		});
+	}
+
+	factory.addQuestion = function(info, callback) {
+		$http.post('/addQuestion', info).success(function(output) {
+			callback(questions);
+		});
+	}
+
+	var currentQuestion;
+
+	factory.currentQuestion = function(question, callback) {
+		currentQuestion = question;
+	}
+
+	factory.showCurrent = function(callback) {
+		callback(currentQuestion);
+	}
+
+	//---------------answers----------------------------
+
+	factory.addAnswer = function(info, callback) {
+		$http.post('/addAnswer', info).success(function(output) {
+			callback(answers);
+		});
+	}
+
+	factory.getAnswers = function(callback) {
+		$http.get('/getAnswers').success(function(output) {
+			answers = output;
+			callback(answers);
+		});
+	}
+
+	factory.like = function(info, callback) {
+		$http.post('/like', info).success(function(output) {
+			callback(answers);
+		});
+	}
+
+	return factory;
+})
+
+    //    controllers
+    app.controller('questionsController', function($scope, questionsFactory) {
+
+	questionsFactory.getQuestions(function(data) {
+		$scope.questions = data;
+	});
+
+	$scope.addQuestion = function() {
+		$scope.newQuestion.answerCount = 0;
+		$scope.newQuestion.date = Date.now();
+		questionsFactory.addQuestion($scope.newQuestion, function() {
+			questionsFactory.getQuestions(function(data) {
+				$scope.questions = data;
+			});
+			$scope.newQuestion = {};
+	    });
+	}
+
+	$scope.showQuestion = function(question) {
+		questionsFactory.currentQuestion(question, function() {
+
+		});
+	}
+
+	questionsFactory.showCurrent(function(data) {
+		$scope.currentQuestion = data;
+	});
+
+	//------------------Answers----------------------
+
+	$scope.addAnswer = function() {
+		$scope.newAnswer.likes = 0;
+		$scope.newAnswer.answerCount = $scope.currentQuestion.answerCount;
+		$scope.newAnswer.questionId = $scope.currentQuestion._id;
+		$scope.newAnswer.date = Date.now();
+		questionsFactory.addAnswer($scope.newAnswer, function() {
+
+		});
+	}
+
+	questionsFactory.getAnswers(function(data) {
+		$scope.answers = data;
+	});
+
+	$scope.like = function(answer, question) {
+		questionsFactory.like(answer, function() {
+			questionsFactory.getAnswers(function(data) {
+				$scope.answers = data;
+			});
+		});
+	}
+
+});
+       </script>
+        <style>
+        button {
+            width: 100%;
+        }
+        </style>
+    </head>
+    <body ng-app="app">
+        <div ng-view="">
+
+        </div>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+        <script src='https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.6/js/materialize.min.js'></script>
+    </body>
+</html>
